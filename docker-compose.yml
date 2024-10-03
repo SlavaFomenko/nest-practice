@@ -1,0 +1,37 @@
+version: '3'
+services:
+  app:
+    build:
+      dockerfile: docker/api/Dockerfile
+    container_name: nest_app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api:/app/api
+      - /api/node_modules 
+    depends_on:
+      - influxdb
+    environment:
+      - NODE_ENV=production
+      - INFLUX_URL=http://influxdb:8086
+    networks:
+      - app-network
+
+  influxdb:
+    build:
+      context: .
+      dockerfile: docker/influxDB/Dockerfile
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    networks:
+      - app-network
+
+volumes:
+  influxdb-data:
+
+networks:
+  app-network:
+    driver: bridge
