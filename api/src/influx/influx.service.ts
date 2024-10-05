@@ -40,7 +40,6 @@ export class InfluxService {
             // await writeApi.flush();
         }
             await writeApi.close();
-        // console.log('Finished writing points');
     }
 
     async writeOrUpdateData(bucket: string, measurement: string, data: any) {
@@ -61,13 +60,21 @@ export class InfluxService {
 
         let fluxQuery = `
       from(bucket: "${bucket}")
-      |> range(start: ${start}, stop: ${stop})
+      |> range(start: ${start})
       |> filter(fn: (r) => r._measurement == "${measurement}")
 
     `;
+        // filters = {
+            // _field:`"temp"`,
+            // _value:40
+        // }
+    //     from(bucket: "bucket")
+    //          |> range(start: -24h)
+    //          |> filter(fn: (r) => r._measurement == "temperature")
+    //          |> filter(fn: (r) => r._field == "temp" and r._value == 10)
         if (filters) {
             for (const [key, value] of Object.entries(filters)) {
-                fluxQuery += `|> filter(fn: (r) => r["${key}"] == "${value}")\n`;
+                fluxQuery += `|> filter(fn: (r) => r["${key}"] == ${value})\n`;
             }
         }
 
