@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
-import {InfluxDB, Point} from '@influxdata/influxdb-client';
-import {log} from "node:util";
+import {FluxTableMetaData, InfluxDB, Point} from '@influxdata/influxdb-client';
+
 
 @Injectable()
 export class InfluxService {
@@ -10,43 +10,79 @@ export class InfluxService {
         const writeApi = this.influxDB.getWriteApi('test-org', bucket);
 
         console.log(data)
+        console.log('writeData')
         const point = new Point(measurement)
-            .tag('sensor', 'sens-5')
-            .floatField("value", data.value)
-            // .timestamp('2025.06.05 14:44:00')
-            // .timestamp(Date.UTC(2025, 9, 24, 14, 15, 22));
-            // .timestamp(new Date("2025-10-03T18:31:20.000Z"));
+            .tag('sensor', 'sens-7')
+            .floatField("temp",  data.value)
+            // .timestamp(new Date('2024-10-25T12:12:20.000Z'));
+            // .timestamp(new Date());
 
         writeApi.writePoint(point);
         await writeApi.close();
     }
 
     async writeRandomData(bucket: string, measurement: string, data: any) {
+        console.log('hello')
+        // let currentTime = Date.now();
+
         const writeApi = this.influxDB.getWriteApi('test-org', bucket);
-        console.log(data);
-
-        let currentTime = Date.now();
-        console.log(`Points quantity: ${data.pointsQuantity}`);
-
-        for (let i = 0; i < data.pointsQuantity; i++) {
-            const randNum: number = Math.floor(Math.random() * 5) - 2;
-            const point = new Point(measurement)
+        for (let i = 0; i < 150; i++) {
+            const randNum: number = Math.floor(Math.random() * 10) - 2;
+            // console.log(randNum)
+            // console.log(data.sensorValue);
+            const point = new Point('test_measurement3')
                 .tag('sensor', data.sensorValue)
-                .floatField('value', data.value + randNum)
-                .timestamp(new Date('2025-08-24T14:15:22Z'));
-            try {
-                writeApi.writePoint(point);
-            } catch (error) {
-                console.error('Error writing point:', error);
-            }
-            // await new Promise(resolve => setTimeout(resolve, 30)); // Задержка
+                .floatField('value', data.value + randNum )
+                // .timestamp(new Date('2024-10-05T20:12:20.000Z'));
+            //
+            await new Promise(resolve => setTimeout(resolve, 30));
+            writeApi.writePoint(point);
+            // await writeApi.flush();
         }
-
-        await writeApi.close();
-        console.log('Finished writing points');
+            await writeApi.close();
+        // console.log('Finished writing points');
     }
 
+    async writeOrUpdateData(bucket: string, measurement: string, data: any) {
+        const writeApi = this.influxDB.getWriteApi('test-org', bucket);
 
+        const point = new Point(measurement)
+            .tag('sensor', data.sensor || 'sens-6')
+            .floatField("value", data.value)
+            .timestamp(data.timestamp);
 
+        writeApi.writePoint(point);
+
+        await writeApi.close();
+        console.log('Point written or updated successfully');
+    }
+    async queryData(bucket: string, measurement: string, start: string, stop: string, filters?: any) {
+        const queryApi = this.influxDB.getQueryApi('test-org');
+
+        let fluxQuery = `
+      from(bucket: "${bucket}")
+      |> range(start: ${start}, stop: ${stop})
+      |> filter(fn: (r) => r._measurement == "${measurement}")
+
+    `;
+        if (filters) {
+            for (const [key, value] of Object.entries(filters)) {
+                fluxQuery += `|> filter(fn: (r) => r["${key}"] == "${value}")\n`;
+            }
+        }
+
+        try {
+            const data = [];
+            await queryApi.collectRows(fluxQuery, (row: any[], tableMeta: FluxTableMetaData) => {
+                const record = tableMeta.toObject(row);
+                data.push(record);
+            });
+
+            return data;
+        } catch (error) {
+            console.error('Error querying data:', error);
+            throw error;
+        }
+    }
 
 }

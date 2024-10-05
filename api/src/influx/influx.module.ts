@@ -8,7 +8,7 @@ import { InfluxService } from './influx.service';
             provide: 'INFLUXDB_CLIENT',
             useFactory: () => {
                 const url = 'http://host.docker.internal:8086';
-                const token = 'Iw6oDc4BErxgmva3MmhAjKZnB1eRpYd5GVNfKISYq39qEn1u0hfsMye8QvCbM9mPrMk9iTX59ZskYMFizl9EYw=='
+                const token = 'Iw6oDc4BErxgmva3MmhAjKZnB1eRpYd5GVNfKISYq39qEn1u0hfsMye8QvCbM9mPrMk9iTX59ZskYMFizl9EYw==' //  🫡
                 return new InfluxDB({ url, token });
             },
         },
