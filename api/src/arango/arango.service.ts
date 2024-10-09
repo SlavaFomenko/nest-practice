@@ -24,23 +24,29 @@ export class ArangoDBService {
     async createTreeFromTopic(topic: string): Promise<void> {
         const [countryName, regionName, cityName, placeTypeName, placeName, sensorIdName] = topic.split('/');
 
-        const country = await this.countryService.createCountry({code: "", name: countryName });
+        const country = await this.countryService.create({ code: "", name: countryName });
 
-        const region = await this.regionService.createRegion({code: "", name: regionName, parent_id: country._id });
+
+        // console.log(regionName)
+
+
+        const region = await this.regionService.create({ code: "", name: regionName,parent_id:country._id });
         await this.createEdge(EdgeCollections.COUNTRY_REGION, country._id, region._id);
+        console.log('hello')
 
-        const city = await this.cityService.createCity({code: "", name: cityName, parent_id: region._id });
+        const city = await this.cityService.create({code: "", name: cityName, parent_id: region._id });
         await this.createEdge(EdgeCollections.REGION_CITY, region._id, city._id);
 
-        const placeType = await this.placeTypeService.createPlaceType({code: "", name: placeTypeName, parent_id: city._id });
+        const placeType = await this.placeTypeService.create({code: "", name: placeTypeName, parent_id: city._id });
         await this.createEdge(EdgeCollections.CITY_PLACE_TYPE, city._id, placeType._id);
 
-        const place = await this.placeService.createPlace({type: "", name: placeName, parent_id: city._id });
+        const place = await this.placeService.create({type: "", name: placeName, parent_id: city._id });
         await this.createEdge(EdgeCollections.PLACE_TYPE_PLACE, placeType._id, place._id);
 
-        const sensorId = await this.sensorIdService.createSensorId({
+        const sensorId = await this.sensorIdService.create({
             status: "",
-            name: sensorIdName, parent_id: place._id });
+            name: sensorIdName,
+            parent_id: place._id });
         await this.createEdge(EdgeCollections.PLACE_SENSORID, place._id, sensorId._id);
     }
 

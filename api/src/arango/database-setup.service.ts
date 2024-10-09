@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import {InjectManager, ArangoManager} from 'nest-arango';
+import {InjectManager, ArangoManager, Database} from 'nest-arango';
 import {Collections, EdgeCollections, GraphName} from './const/collections.constants';
 
 @Injectable()
@@ -28,7 +28,7 @@ export class DatabaseSetupService implements OnModuleInit {
         await this.createGraph();
     }
     async clearDatabase(): Promise<void> {
-        const db = this.databaseManager.database;
+        const db:Database = this.databaseManager.database;
 
 
         const collectionsToClear = [
@@ -65,7 +65,7 @@ export class DatabaseSetupService implements OnModuleInit {
         }
     }
     private async createGraph(): Promise<void> {
-        const db = this.databaseManager.database;
+        const db  = this.databaseManager.database;
 
         const exists = await db.graph(GraphName.GRAPH).exists();
 
