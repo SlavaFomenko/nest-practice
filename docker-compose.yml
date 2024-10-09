@@ -8,12 +8,16 @@ services:
       - "3000:3000"
     volumes:
       - ./api:/app/api
-      - /api/node_modules 
+      - /app/api/node_modules
     depends_on:
       - influxdb
+      - arangodb
+      - mqtt_broker
     environment:
       - NODE_ENV=production
       - INFLUX_URL=http://influxdb:8086
+      - ARANGO_URL=http://arangodb:8529
+      - MQTT_URL=mqtt://mqtt_broker:1883
     networks:
       - app-network
 
@@ -29,8 +33,30 @@ services:
     networks:
       - app-network
 
+  arangodb:
+    image: arangodb:latest
+    container_name: arangodb
+    ports:
+      - "8529:8529"
+    environment:
+      - ARANGO_ROOT_PASSWORD=root
+    networks:
+      - app-network
+
+  mqtt_broker:
+    container_name: mqtt_broker
+    build:
+      dockerfile: ./docker/mosquitto/Dockerfile
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./docker/mosquitto/config:/mosquitto/config:rw
+      - ./docker/mosquitto/data:/mosquitto/data:rw
+      - ./docker/mosquitto/log:/mosquitto/log:rw
+
 volumes:
   influxdb-data:
+  arangodb-data:
 
 networks:
   app-network:

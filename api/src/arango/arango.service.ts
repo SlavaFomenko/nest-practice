@@ -1,104 +1,56 @@
-import {OnModuleInit} from "@nestjs/common";
-import {Database} from "arangojs";
+import { Injectable } from '@nestjs/common';
+import { CountryService } from './services/country.service';
+import { RegionService } from './services/region.service';
+import { CityService } from './services/city.service';
+import { PlaceService } from './services/place.service';
+import { SensorService } from './services/sensor.service';
+import { InjectManager, ArangoManager } from 'nest-arango';
 
-export class ArangoService implements OnModuleInit{
-    private db: Database;
+@Injectable()
+export class ArangoDBService {
+    constructor(
+        private readonly countryService: CountryService,
+        private readonly regionService: RegionService,
+        private readonly cityService: CityService,
+        private readonly placeService: PlaceService,
+        private readonly sensorService: SensorService,
+        @InjectManager()
+        private readonly databaseManager: ArangoManager,
+    ) {}
 
-    onModuleInit() {
-        this.db = new Database({
-            url: 'http://arangodb:8529', // URL вашей ArangoDB
-            databaseName: 'test-db',
-            auth: { username: 'root', password: 'root' }, // Ваши учетные данные
-        });
-        this.createCollection('user-collection');
-        this.createCollection('like');
-        this.createGraph('social-graph');
-        // this.addEdgeCollectionToGraph('social-graph','like',["users"],['users'])
+    async createTreeFromTopic(topic: string): Promise<void> {
+        const [countryName, regionName, cityName, placeName, sensorName] = topic.split('/');
+
+        const country = await this.countryService.createCountry({ name: countryName });
+
+        const region = await this.regionService.createRegion({ name: regionName, parent_id: country._id });
+        await this.createEdge('CountryRegionEdges', country._id, region._id);
+
+        const city = await this.cityService.createCity({ name: cityName, parent_id: region._id });
+        await this.createEdge('RegionCityEdges', region._id, city._id);
+
+        const place = await this.placeService.createPlace({ name: placeName, parent_id: city._id });
+        await this.createEdge('CityPlaceEdges', city._id, place._id);
+
+        const sensor = await this.sensorService.createSensor({ name: sensorName, parent_id: place._id });
+        await this.createEdge('PlaceSensorEdges', place._id, sensor._id);
     }
 
-    async createCollection(collectionName: string) {
-        const collections = await this.db.listCollections();
-        const collectionExists = collections.some(col => col.name === collectionName);
-        if (!collectionExists) {
-            await this.db.createCollection(collectionName);
-            console.log(`Collection ${collectionName} created.`);
-        } else {
-            console.log(`Collection ${collectionName} already exists.`);
+    private async createEdge(edgeCollectionName: string, fromId: string, toId: string): Promise<void> {
+        const db = this.databaseManager.database;
+        const existingEdge = await this.findEdge(edgeCollectionName, fromId, toId);
+
+        if (!existingEdge) {
+            await db.collection(edgeCollectionName).save({ _from: fromId, _to: toId });
         }
     }
 
-    async createGraph(graphName: string) {
-        const graphs = await this.db.listGraphs();
-        const graphExists = graphs.some(graph => graph.name === graphName);
-        if (!graphExists) {
-            const edgeDefinitions = [ //test
-                {
-                    collection: 'like',
-                    from: ['users'],
-                    to: ['users'],
-                }
-            ];
-            const graph = await this.db.createGraph(graphName, edgeDefinitions);
-            console.log(`Graph ${graphName} created.`);
-        } else {
-            console.log(`Graph ${graphName} already exists.`);
-        }
+    private async findEdge(edgeCollectionName: string, fromId: string, toId: string): Promise<any> {
+        const db = this.databaseManager.database;
+        const cursor = await db.query(
+            `FOR edge IN ${edgeCollectionName} FILTER edge._from == @fromId AND edge._to == @toId RETURN edge`,
+            { fromId, toId }
+        );
+        return cursor.next();
     }
-
-    async addEdgeCollectionToGraph(graphName: string, edgeCollection: string, fromCollections: string[], toCollections: string[]) {
-        const graph = this.db.graph(graphName);
-
-        try {
-            await graph.addEdgeDefinition({
-                collection: edgeCollection,
-                from: fromCollections,
-                to: toCollections
-            });
-            console.log(`Edge collection ${edgeCollection} added to graph ${graphName}.`);
-        } catch (error) {
-            console.error(`Failed to add edge collection to graph: ${error.message}`);
-        }
-    }
-
-    async addVertex(graphName: string, vertexCollection: string, vertex: any) {
-        const graph = this.db.graph(graphName);
-        return await graph.vertexCollection(vertexCollection).save(vertex);
-    }
-
-    async addEdge(graphName: string, name: string, from: string, to: string, edge: any) {
-        console.log(name)
-        const graph = this.db.graph(graphName);
-        return await graph.edgeCollection(name).save({
-            _from: from,
-            _to: to,
-            ...edge,
-        });
-    }
-
-    async createDocument(collectionName: string, document: any): Promise<any> {
-        console.log('hello')
-        const collection = this.db.collection(collectionName);
-        return await collection.save(document);
-    }
-
-    async getDocument(collectionName: string, documentKey: string): Promise<any> {
-        const collection = this.db.collection(collectionName);
-        return await collection.document(documentKey);
-    }
-
-    async updateDocument(collectionName: string, documentKey: string, document: any): Promise<any> {
-        const collection = this.db.collection(collectionName);
-        return await collection.replace(documentKey, document);
-    }
-
-    async deleteDocument(collectionName: string, documentKey: string): Promise<any> {
-        const collection = this.db.collection(collectionName);
-        return await collection.remove(documentKey);
-    }
-
-    // async query(queryString: string, bindVars?: any): Promise<any> {
-    //     const cursor = await this.db.query(queryString, bindVars);
-    //     return cursor.all();
-    // }
-
 }

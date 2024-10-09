@@ -14,8 +14,6 @@ export class InfluxService {
         const point = new Point(measurement)
             .tag('sensor', 'sens-7')
             .floatField("temp",  data.value)
-            // .timestamp(new Date('2024-10-25T12:12:20.000Z'));
-            // .timestamp(new Date());
 
         writeApi.writePoint(point);
         await writeApi.close();
@@ -23,18 +21,13 @@ export class InfluxService {
 
     async writeRandomData(bucket: string, measurement: string, data: any) {
         console.log('hello')
-        // let currentTime = Date.now();
 
         const writeApi = this.influxDB.getWriteApi('test-org', bucket);
         for (let i = 0; i < 150; i++) {
             const randNum: number = Math.floor(Math.random() * 10) - 2;
-            // console.log(randNum)
-            // console.log(data.sensorValue);
             const point = new Point('test_measurement3')
                 .tag('sensor', data.sensorValue)
                 .floatField('value', data.value + randNum )
-                // .timestamp(new Date('2024-10-05T20:12:20.000Z'));
-            //
             await new Promise(resolve => setTimeout(resolve, 30));
             writeApi.writePoint(point);
             // await writeApi.flush();
