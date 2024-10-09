@@ -1,10 +1,9 @@
 import {ArangoDocument, Collection} from 'nest-arango';
 import {Collections} from "../const/collections.constants";
 
-
-@Collection(Collections.REGIONS)
-export class RegionEntity extends ArangoDocument{
+@Collection(Collections.SENSORIDS)
+export class SensorIdEntity extends ArangoDocument{
     name: string;
-    code: string;
+    status: string;
     parent_id: string;
 }

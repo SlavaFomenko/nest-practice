@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectManager, ArangoManager } from 'nest-arango';
 import { PlaceEntity } from '../entities/place.entity';
+import { Collections } from "../const/collections.constants";
 
 @Injectable()
 export class PlaceService {
@@ -9,7 +10,7 @@ export class PlaceService {
         private readonly databaseManager: ArangoManager,
     ) {}
 
-    async createPlace(placeData: Partial<PlaceEntity>): Promise<PlaceEntity> {
+    async createPlace(placeData: PlaceEntity): Promise<PlaceEntity> {
         const db = this.databaseManager.database;
 
         if (!placeData.name) {
@@ -21,14 +22,14 @@ export class PlaceService {
             return existingPlace;
         }
 
-        const result = await db.collection('Places').save(placeData);
+        const result = await db.collection(Collections.PLACES).save(placeData);
         return { ...placeData, _id: result._id, _key: result._key, _rev: result._rev } as PlaceEntity;
     }
 
     async getPlaceByName(name: string, parent_id: string): Promise<PlaceEntity | null> {
         const db = this.databaseManager.database;
         const cursor = await db.query(
-            `FOR place IN Places FILTER place.name == @name AND place.parent_id == @parentId RETURN place`,
+            `FOR place IN ${Collections.PLACES} FILTER place.name == @name AND place.parent_id == @parentId RETURN place`,
             { name, parentId: parent_id }
         );
         return cursor.next();
@@ -36,7 +37,7 @@ export class PlaceService {
 
     async getAllPlaces(): Promise<PlaceEntity[]> {
         const db = this.databaseManager.database;
-        const cursor = await db.query('FOR place IN Places RETURN place');
+        const cursor = await db.query(`FOR place IN ${Collections.PLACES} RETURN place`);
         return cursor.all();
     }
 }

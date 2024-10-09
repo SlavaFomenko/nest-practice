@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { InjectManager, ArangoManager } from 'nest-arango';
-import {Collections, EdgeCollections, Graph} from './const/collections.constants';
+import {InjectManager, ArangoManager} from 'nest-arango';
+import {Collections, EdgeCollections, GraphName} from './const/collections.constants';
 
 @Injectable()
 export class DatabaseSetupService implements OnModuleInit {
@@ -11,33 +11,29 @@ export class DatabaseSetupService implements OnModuleInit {
 
     async onModuleInit() {
         this.clearDatabase()
+
         await this.createCollection(Collections.COUNTRIES);
         await this.createCollection(Collections.REGIONS);
         await this.createCollection(Collections.CITIES);
+        await this.createCollection(Collections.PLACE_TYPES);
         await this.createCollection(Collections.PLACES);
-        await this.createCollection(Collections.SENSORS);
+        await this.createCollection(Collections.SENSORIDS);
 
         await this.createCollection(EdgeCollections.COUNTRY_REGION, true);
         await this.createCollection(EdgeCollections.REGION_CITY, true);
-        await this.createCollection(EdgeCollections.CITY_PLACE, true);
-        await this.createCollection(EdgeCollections.PLACE_SENSOR, true);
+        await this.createCollection(EdgeCollections.CITY_PLACE_TYPE, true);
+        await this.createCollection(EdgeCollections.PLACE_TYPE_PLACE, true);
+        await this.createCollection(EdgeCollections.PLACE_SENSORID, true);
 
         await this.createGraph();
     }
     async clearDatabase(): Promise<void> {
         const db = this.databaseManager.database;
 
-        // Список всех коллекций, которые нужно очистить
+
         const collectionsToClear = [
-            'Countries',
-            'Regions',
-            'Cities',
-            'Places',
-            'Sensors',
-            'CountryRegionEdges',
-            'RegionCityEdges',
-            'CityPlaceEdges',
-            'PlaceSensorEdges'
+            ...Object.values(Collections),
+            ...Object.values(EdgeCollections),
         ];
 
         for (const collectionName of collectionsToClear) {
@@ -45,7 +41,7 @@ export class DatabaseSetupService implements OnModuleInit {
             const exists = await collection.exists();
 
             if (exists) {
-                await collection.truncate(); // Очищает коллекцию, удаляя все документы
+                await collection.truncate();
                 console.log(`Collection ${collectionName} cleared`);
             } else {
                 console.log(`Collection ${collectionName} does not exist`);
@@ -53,7 +49,7 @@ export class DatabaseSetupService implements OnModuleInit {
         }
     }
 
-    private async createCollection(name: string, isEdge: boolean = false) {
+    private async createCollection(name: string, isEdge: boolean = false):Promise<void> {
         const db = this.databaseManager.database;
         const exists = await db.collection(name).exists();
 
@@ -68,13 +64,13 @@ export class DatabaseSetupService implements OnModuleInit {
             console.log(`Collection ${name} already exists`);
         }
     }
-    private async createGraph() {
+    private async createGraph(): Promise<void> {
         const db = this.databaseManager.database;
 
-        const exists = await db.graph(Graph).exists();
+        const exists = await db.graph(GraphName.GRAPH).exists();
 
         if (!exists) {
-            await db.createGraph(Graph, [
+            await db.createGraph(GraphName.GRAPH, [
                 {
                     collection: EdgeCollections.COUNTRY_REGION,
                     from: [Collections.COUNTRIES],
@@ -86,19 +82,24 @@ export class DatabaseSetupService implements OnModuleInit {
                     to: [Collections.CITIES],
                 },
                 {
-                    collection: EdgeCollections.CITY_PLACE,
+                    collection: EdgeCollections.CITY_PLACE_TYPE,
                     from: [Collections.CITIES],
+                    to: [Collections.PLACE_TYPES],
+                },
+                {
+                    collection: EdgeCollections.PLACE_TYPE_PLACE,
+                    from: [Collections.PLACE_TYPES],
                     to: [Collections.PLACES],
                 },
                 {
-                    collection: EdgeCollections.PLACE_SENSOR,
+                    collection: EdgeCollections.PLACE_SENSORID,
                     from: [Collections.PLACES],
-                    to: [Collections.SENSORS],
+                    to: [Collections.SENSORIDS],
                 },
             ]);
-            console.log(`Graph ${Graph} created`);
+            console.log(`Graph ${GraphName.GRAPH} created`);
         } else {
-            console.log(`Graph ${Graph} already exists`);
+            console.log(`Graph ${GraphName.GRAPH} already exists`);
         }
     }
 

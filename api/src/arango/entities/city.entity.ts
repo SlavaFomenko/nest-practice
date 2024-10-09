@@ -1,6 +1,7 @@
 import {ArangoDocument, Collection} from 'nest-arango';
+import {Collections} from "../const/collections.constants";
 
-@Collection('cities')
+@Collection(Collections.CITIES)
 export class CityEntity extends ArangoDocument{
     name: string;
     code: string;

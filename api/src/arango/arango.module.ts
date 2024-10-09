@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import {ArangoController} from "../arango-test/arango.controller";
 import {ArangoDBController} from "./arango.controller.";
 import {ArangoDBService} from "./arango.service";
 import {CountryService} from "./services/country.service";
 import {RegionService} from "./services/region.service";
 import {CityService} from "./services/city.service";
 import {PlaceService} from "./services/place.service";
-import {SensorService} from "./services/sensor.service";
+import {SensorIdService} from "./services/sensor-id.service";
+import {PlaceTypeService} from "./services/place-type.service";
 
 @Module({
     controllers: [ArangoDBController],
@@ -15,8 +15,9 @@ import {SensorService} from "./services/sensor.service";
         CountryService,
         RegionService,
         CityService,
+        PlaceTypeService,
         PlaceService,
-        SensorService,
+        SensorIdService,
     ],
 })
 export class ArangoDBModule {}

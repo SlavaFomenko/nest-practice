@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectManager, ArangoManager } from 'nest-arango';
 import { CountryEntity } from '../entities/country.entity';
+import { Collections } from "../const/collections.constants";
 
 @Injectable()
 export class CountryService {
@@ -9,7 +10,7 @@ export class CountryService {
         private readonly databaseManager: ArangoManager,
     ) {}
 
-    async createCountry(countryData: Partial<CountryEntity>): Promise<CountryEntity> {
+    async createCountry(countryData: CountryEntity): Promise<CountryEntity> {
         const db = this.databaseManager.database;
 
         if (!countryData.name) {
@@ -21,14 +22,14 @@ export class CountryService {
             return existingCountry;
         }
 
-        const result = await db.collection('Countries').save(countryData);
+        const result = await db.collection(Collections.COUNTRIES).save(countryData);
         return { ...countryData, _id: result._id, _key: result._key, _rev: result._rev } as CountryEntity;
     }
 
     async getCountryByName(name: string): Promise<CountryEntity | null> {
         const db = this.databaseManager.database;
         const cursor = await db.query(
-            `FOR country IN Countries FILTER country.name == @name RETURN country`,
+            `FOR country IN ${Collections.COUNTRIES} FILTER country.name == @name RETURN country`,
             { name }
         );
         return cursor.next();
@@ -36,7 +37,7 @@ export class CountryService {
 
     async getAllCountries(): Promise<CountryEntity[]> {
         const db = this.databaseManager.database;
-        const cursor = await db.query('FOR country IN Countries RETURN country');
+        const cursor = await db.query(`FOR country IN ${Collections.COUNTRIES} RETURN country`);
         return cursor.all();
     }
 }
