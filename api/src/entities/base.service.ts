@@ -3,7 +3,8 @@ import { InjectManager, ArangoManager } from 'nest-arango';
 
 interface BasicFields{
     parent_id?: string;
-    name: string;
+    code: string;
+    name: string
 }
 
 @Injectable()
@@ -20,8 +21,8 @@ export abstract class BaseService<T extends BasicFields> {
         const parentId = entityData.parent_id;
 
         const existingEntity = parentId
-            ? await this.getByName(entityData.name, parentId)
-            : await this.getByName(entityData.name);
+            ? await this.getByCode(entityData.code, parentId)
+            : await this.getByCode(entityData.code);
 
         if (existingEntity) {
             return existingEntity;
@@ -33,21 +34,18 @@ export abstract class BaseService<T extends BasicFields> {
 
 
 
-    async getByName(name: string, parentId?: string): Promise<T | null> {
+    async getByCode(code: string, parentId?: string): Promise<T | null> {
         const db = this.databaseManager.database;
-        const bindParams = { name };
-        let query = `FOR entity IN ${this.collectionName} FILTER entity.name == @name`;
+        const bindParams = { code };
+        let query = `FOR entity IN ${this.collectionName} FILTER entity.code == @code`;
 
         if (parentId) {
             query += ` AND entity.parent_id == @parentId`;
             bindParams['parentId'] = parentId;
         }
-        // console.log(bindParams)
-
         query += ` RETURN entity`;
 
         const cursor = await db.query(query, bindParams);
-        console.log('hello')
         return cursor.next();
     }
 

@@ -1,8 +1,8 @@
 import {Injectable} from "@nestjs/common";
-import {BaseService} from "./base.service";
-import {PlaceEntity} from "../entities/place.entity";
+import {BaseService} from "../base.service";
+import {PlaceEntity} from "./place.entity";
 import {ArangoManager, InjectManager} from "nest-arango";
-import {Collections} from "../const/collections.constants";
+import {Collections} from "../../common/enums/arango.enums";
 
 @Injectable()
 export class PlaceService extends BaseService<PlaceEntity> {

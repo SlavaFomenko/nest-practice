@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectManager, ArangoManager } from 'nest-arango';
-import {SensorIdEntity} from '../entities/sensor-id.entity';
-import {Collections} from "../const/collections.constants";
-import {BaseService} from "./base.service";
+import {SensorIdEntity} from './sensor-id.entity';
+import {Collections} from "../../common/enums/arango.enums";
+import {BaseService} from "../base.service";
 
 @Injectable()
 export class SensorIdService extends BaseService<SensorIdEntity> {
@@ -10,6 +10,6 @@ export class SensorIdService extends BaseService<SensorIdEntity> {
         @InjectManager()
         protected readonly databaseManager: ArangoManager,
     ) {
-        super(databaseManager, Collections.SENSORIDS);
+        super(databaseManager, Collections.SENSOR_IDS);
     }
 }

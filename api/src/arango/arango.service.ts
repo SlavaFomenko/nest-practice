@@ -1,12 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { CountryService } from './services/country.service';
-import { RegionService } from './services/region.service';
-import { CityService } from './services/city.service';
-import { PlaceService } from './services/place.service';
-import { SensorIdService } from './services/sensor-id.service';
 import { InjectManager, ArangoManager } from 'nest-arango';
-import {PlaceTypeService} from "./services/place-type.service";
-import {EdgeCollections} from "./const/collections.constants";
+import { CountryService } from '../entities/country/country.service';
+import { RegionService } from '../entities/region/region.service';
+import { CityService } from '../entities/city/city.service';
+import { PlaceService } from '../entities/place/place.service';
+import { SensorIdService } from '../entities/senosor-id/sensor-id.service';
+import {SensorService} from "../entities/sensor/sensor.service";
+import {PlaceTypeService} from "../entities/place-type/place-type.service";
+import {CountryEntity} from "../entities/country/country.entity";
+import {RegionEntity} from "../entities/region/region.entity";
+import {CityEntity} from "../entities/city/city.entity";
+import {PlaceTypeEntity} from "../entities/place-type/place-type.entity";
+import {EdgeCollections} from "../common/enums/arango.enums";
 
 @Injectable()
 export class ArangoDBService {
@@ -17,38 +22,39 @@ export class ArangoDBService {
         private readonly placeService: PlaceService,
         private readonly sensorIdService: SensorIdService,
         private readonly placeTypeService: PlaceTypeService,
+        private readonly sensorService:SensorService,
         @InjectManager()
         private readonly databaseManager: ArangoManager,
     ) {}
 
     async createTreeFromTopic(topic: string): Promise<void> {
-        const [countryName, regionName, cityName, placeTypeName, placeName, sensorIdName] = topic.split('/');
+        const [countryCode, regionCode, cityCode, placeTypeCode, placeCode, sensorIdCode,sensorCode] = topic.split('/');
 
-        const country = await this.countryService.create({ code: "", name: countryName });
+        const country: CountryEntity = await this.countryService.create({ code: countryCode, name: null });
 
+        const region:RegionEntity = await this.regionService.create({ code: regionCode, name: null,parent_id:country._id });
+        await this.createEdge(EdgeCollections.COUNTRY_REGION.ADGE_NAME, country._id, region._id);
 
-        // console.log(regionName)
+        const city:CityEntity = await this.cityService.create({code: cityCode, name: null, parent_id: region._id });
+        await this.createEdge(EdgeCollections.REGION_CITY.ADGE_NAME, region._id, city._id);
 
+        const placeType:PlaceTypeEntity = await this.placeTypeService.create({code: placeTypeCode, name: null, parent_id: city._id });
+        await this.createEdge(EdgeCollections.CITY_PLACE_TYPE.ADGE_NAME, city._id, placeType._id);
 
-        const region = await this.regionService.create({ code: "", name: regionName,parent_id:country._id });
-        await this.createEdge(EdgeCollections.COUNTRY_REGION, country._id, region._id);
-        console.log('hello')
-
-        const city = await this.cityService.create({code: "", name: cityName, parent_id: region._id });
-        await this.createEdge(EdgeCollections.REGION_CITY, region._id, city._id);
-
-        const placeType = await this.placeTypeService.create({code: "", name: placeTypeName, parent_id: city._id });
-        await this.createEdge(EdgeCollections.CITY_PLACE_TYPE, city._id, placeType._id);
-
-        const place = await this.placeService.create({type: "", name: placeName, parent_id: city._id });
-        await this.createEdge(EdgeCollections.PLACE_TYPE_PLACE, placeType._id, place._id);
+        const place = await this.placeService.create({code: placeCode, name: null, parent_id: placeType._id });
+        await this.createEdge(EdgeCollections.PLACE_TYPE_PLACE.ADGE_NAME, placeType._id, place._id);
 
         const sensorId = await this.sensorIdService.create({
-            status: "",
-            name: sensorIdName,
+            code:sensorIdCode,
+            name: null,
             parent_id: place._id });
-        await this.createEdge(EdgeCollections.PLACE_SENSORID, place._id, sensorId._id);
+        await this.createEdge(EdgeCollections.PLACE_SENSOR_ID.ADGE_NAME, place._id, sensorId._id);
+
+        const sensor = await this.sensorService.create({code: sensorCode, name: null,sensor_id:'', parent_id: sensorId._id });
+        await this.createEdge(EdgeCollections.SENSOR_ID_SENSOR.ADGE_NAME, sensorId._id, sensor._id);
     }
+
+
 
     private async createEdge(edgeCollectionName: string, fromId: string, toId: string): Promise<void> {
         const db = this.databaseManager.database;

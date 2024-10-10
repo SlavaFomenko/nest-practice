@@ -17,7 +17,6 @@ import {DatabaseSetupService} from "./arango/database-setup.service";
           isGlobal: true,
           load:[config]
       }),
-      // MqttModule,
       InfluxModule,
       ArangoModule.forRootAsync({
           imports: [ConfigModule],
