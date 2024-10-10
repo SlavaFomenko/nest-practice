@@ -10,6 +10,7 @@ import {config} from "./config/config";
 import {ArangoDBModule} from "./arango/arango.module";
 import {AppService} from "./app.service";
 import {DatabaseSetupService} from "./arango/database-setup.service";
+import {ArangoConfig} from "./config/arango.config";
 
 @Module({
   imports: [
@@ -20,16 +21,7 @@ import {DatabaseSetupService} from "./arango/database-setup.service";
       InfluxModule,
       ArangoModule.forRootAsync({
           imports: [ConfigModule],
-          useFactory: async (configService: ConfigService) => ({
-              config:{
-                  url:process.env.ARANGO_DB_URL,
-                  databaseName:process.env.ARANGO_DB_NAME,
-                  auth:{
-                      username:process.env.ARANGO_DB_USERNAME,
-                      password:process.env.ARANGO_DB_PASSWORD,
-                  }
-              }
-          })
+          useClass: ArangoConfig,
       }),
       ArangoDBModule
   ],

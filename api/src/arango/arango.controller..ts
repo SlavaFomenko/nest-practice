@@ -5,7 +5,7 @@ import {ArangoDBService} from "./arango.service";
 export class ArangoDBController {
     constructor(private readonly arangoDBService: ArangoDBService) {}
 
-    @Post('say-hello')
+    @Post('create-tree-from-topic')
     createTreeFromTopic(@Body() body) {
         return this.arangoDBService.createTreeFromTopic(body.topic);
     }
